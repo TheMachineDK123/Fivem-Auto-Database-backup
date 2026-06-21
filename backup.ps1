@@ -24,8 +24,8 @@ $DumpExe        = "C:\Program Files\MariaDB 12.3\bin\mysqldump.exe"
 
 # Database-login
 $DbUser         = "root"
-$DbPassword     = "admin123"
-$DbName         = "ESXLegacy_96C629"
+$DbPassword     = "Password"
+$DbName         = "DATABASE_NAVN"
 
 # Hvor backups gemmes
 $BackupDir      = "C:\Backups"
