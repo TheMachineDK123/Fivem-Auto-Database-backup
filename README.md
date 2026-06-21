@@ -1,34 +1,3 @@
----
-title: Dokumentation
-description: Oversigt over guides til database, backup og optimering af FiveM-serveren.
-sidebar_label: Oversigt
-sidebar_position: 0
----
-
-# Dokumentation
-
-Velkommen til dokumentationen for FiveM-serveren. Her finder du guides til opsætning, drift og optimering af serverens database.
-
-## Indhold
-
-| Guide | Beskrivelse |
-| ----- | ----------- |
-| [Migrering fra XAMPP til MariaDB](./migrering-xampp-til-mariadb.md) | Step-by-step: flyt databasen fra XAMPP til en standalone MariaDB-server. |
-| [Optimering af database (MariaDB)](./optimering-af-database.md) | Sådan tuner du MariaDB, så alt kører så smooth som muligt. |
-| [Backup-script (`backup.ps1`)](#backup-script) | Automatisk database-backup 2 gange dagligt. |
-
-## Filer i denne mappe
-
-| Fil | Formål |
-| --- | ------ |
-| `migrering-xampp-til-mariadb.md` | Migrerings-guide (Markdown). |
-| `migrering-xampp-til-mariadb.html` | Samme guide som HTML — klar til import i GitBook. |
-| `optimering-af-database.md` | Guide til database-optimering. |
-| `my.ini.example` | Færdig MariaDB-konfiguration med optimerede settings. |
-| `backup.ps1` | PowerShell-script til automatisk database-backup. |
-
----
-
 ## Backup-script
 
 `backup.ps1` tager en komplet backup af databasen med `mysqldump`, gemmer den med dato i filnavnet og rydder automatisk gamle backups op.
