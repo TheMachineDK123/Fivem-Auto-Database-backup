@@ -115,6 +115,4 @@ rclone gemmer sin config pr. Windows-bruger i `%APPDATA%\rclone\rclone.conf`. Hv
 
 ---
 
-## Import til GitBook
 
-HTML-filerne i mappen kan importeres direkte i GitBook via **Import → HTML**. Markdown-filerne kan tilsvarende importeres eller synkroniseres via Git.
