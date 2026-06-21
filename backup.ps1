@@ -8,6 +8,9 @@
 
     -Install opretter en planlagt opgave i Windows Task Scheduler, der koerer
     dette script automatisk paa de tidspunkter, der staar i $BackupTimes nedenfor.
+
+    Backuppen kan valgfrit komprimeres til .zip ($CompressBackup) og uploades
+    automatisk til skyen ($CloudEnabled) via rclone eller en mappe-/netvaerkskopi.
 #>
 
 param(
@@ -24,8 +27,8 @@ $DumpExe        = "C:\Program Files\MariaDB 12.3\bin\mysqldump.exe"
 
 # Database-login
 $DbUser         = "root"
-$DbPassword     = "Password"
-$DbName         = "DATABASE_NAVN"
+$DbPassword     = "KODE"
+$DbName         = "Database_navn"
 
 # Hvor backups gemmes
 $BackupDir      = "C:\Backups"
@@ -38,6 +41,27 @@ $BackupTimes    = @("05:00", "17:00")
 
 # Navn paa den planlagte opgave i Task Scheduler
 $TaskName       = "FiveM DB Backup"
+
+# ---- Komprimering ----------------------------------------------------------
+# Pak backuppen som .zip foer upload (sparer plads og baandbredde)
+$CompressBackup = $true
+
+# ---- Cloud-upload ----------------------------------------------------------
+# Slaa cloud-upload til/fra
+$CloudEnabled   = $false
+
+# Metode: "rclone" (Google Drive/OneDrive/Dropbox/S3/FTP m.fl.) eller "copy" (kopi til mappe/netvaerksdrev)
+$CloudMethod    = "rclone"
+
+# -- Hvis $CloudMethod = "rclone":
+#    Installer og konfigurer rclone foerst (se: https://rclone.org/docs/  ->  rclone config)
+$RcloneExe      = "C:\Program Files\rclone\rclone.exe"
+# Remote-navn fra din rclone-config + mappe, f.eks. "gdrive:fivem-backups"
+$RcloneRemote   = "gdrive:fivem-backups"
+
+# -- Hvis $CloudMethod = "copy":
+#    En sti til et mappe/netvaerksdrev eller en synkroniseret cloud-mappe (OneDrive/Google Drive desktop)
+$CloudCopyDir   = "Z:\fivem-backups"
 
 # ============================================================================
 #  Herunder behoever du normalt ikke aendre noget
@@ -69,12 +93,65 @@ function Invoke-Backup {
 
     Write-Host "Backup faerdig."
 
-    # Rotation: slet backups aeldre end $RetentionDays dage
-    Get-ChildItem (Join-Path $BackupDir "esx_*.sql") |
-        Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-$RetentionDays) } |
+    # Komprimer evt. til .zip
+    if ($CompressBackup) {
+        $fil = Compress-BackupFile -Path $fil
+    }
+
+    # Upload evt. til skyen
+    if ($CloudEnabled) {
+        Send-ToCloud -Path $fil
+    }
+
+    # Rotation: slet lokale backups aeldre end $RetentionDays dage (baade .sql og .zip)
+    Get-ChildItem (Join-Path $BackupDir "esx_*.*") |
+        Where-Object { $_.Extension -in ".sql", ".zip" -and $_.LastWriteTime -lt (Get-Date).AddDays(-$RetentionDays) } |
         Remove-Item -Force
 
     Write-Host "Gamle backups (aeldre end $RetentionDays dage) er ryddet op."
+}
+
+function Compress-BackupFile {
+    param([string]$Path)
+
+    $zip = [System.IO.Path]::ChangeExtension($Path, ".zip")
+    Write-Host "Komprimerer -> $zip"
+    Compress-Archive -Path $Path -DestinationPath $zip -Force
+
+    # Slet den raa .sql naar zip'en er lavet
+    Remove-Item $Path -Force
+    return $zip
+}
+
+function Send-ToCloud {
+    param([string]$Path)
+
+    switch ($CloudMethod) {
+        "rclone" {
+            if (-not (Test-Path $RcloneExe)) {
+                Write-Error "rclone blev ikke fundet: $RcloneExe (cloud-upload sprunget over)"
+                return
+            }
+            Write-Host "Uploader til skyen via rclone -> $RcloneRemote"
+            & $RcloneExe copy $Path $RcloneRemote
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "rclone-upload fejlede (exit code $LASTEXITCODE)"
+            } else {
+                Write-Host "Cloud-upload faerdig."
+            }
+        }
+        "copy" {
+            if (-not (Test-Path $CloudCopyDir)) {
+                New-Item -ItemType Directory -Path $CloudCopyDir -Force | Out-Null
+            }
+            Write-Host "Kopierer til cloud-mappe -> $CloudCopyDir"
+            Copy-Item -Path $Path -Destination $CloudCopyDir -Force
+            Write-Host "Cloud-kopi faerdig."
+        }
+        default {
+            Write-Error "Ukendt CloudMethod: '$CloudMethod' (brug 'rclone' eller 'copy')"
+        }
+    }
 }
 
 function Install-Schedule {
